@@ -1,0 +1,24 @@
+# Cambia "TUO_UTENTE" con il valore corretto
+[Unit]
+Description=Personal Telegram To-Do Bot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=TUO_UTENTE
+WorkingDirectory=/home/TUO_UTENTE/todo-telegram
+EnvironmentFile=/home/TUO_UTENTE/todo-telegram/.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/home/TUO_UTENTE/todo-telegram/.venv/bin/python /home/TUO_UTENTE/todo-telegram/bot.py
+
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/TUO_UTENTE/todo-telegram
+
+[Install]
+WantedBy=multi-user.target
