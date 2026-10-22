@@ -10,7 +10,7 @@ User=TUO_UTENTE
 WorkingDirectory=/home/TUO_UTENTE/todo-telegram
 EnvironmentFile=/home/TUO_UTENTE/todo-telegram/.env
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/home/TUO_UTENTE/todo-telegram/.venv/bin/python /home/TUO_UTENTE/todo-telegram/bot.py
+ExecStart=/home/TUO_UTENTE/todo-telegram/.venv/bin/python /home/TUO_UTENTE/todo-telegram/src/bot.py
 
 Restart=on-failure
 RestartSec=5
