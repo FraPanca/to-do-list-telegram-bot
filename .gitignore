@@ -1,8 +1,12 @@
 .env
+src/config/users.txt
+
 .venv/
 __pycache__/
 *.py[cod]
+
 todo.db
 todo.db-shm
 todo.db-wal
+
 ops/todo-telegram.service

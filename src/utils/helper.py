@@ -1,4 +1,4 @@
-def parse_task_id(args) -> int | None:
+def parse_positive_int(args) -> int | None:
     if len(args) != 1:
         return None
     try:
