@@ -8,7 +8,7 @@ from telegram.ext import (
     CommandHandler,
 )
 
-from config.constants import ADMIN_USER_ID, TOKEN
+from config.constants import ADMIN_USER_ID, DB_PATH, TOKEN
 from db.schema import init_db
 from middleware.log import logger
 from services.handlers import (
@@ -49,6 +49,7 @@ async def post_init(app: Application):
 
 
 def main():
+    logger.info("Database: %s", DB_PATH.resolve())
     init_db()
 
     app = (

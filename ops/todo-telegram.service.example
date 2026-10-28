@@ -1,8 +1,10 @@
-# Cambia "TUO_UTENTE" con il valore corretto
+# Cambia "TUO_UTENTE" con il valore corretto e adatta i percorsi alla tua installazione
 [Unit]
 Description=Personal Telegram To-Do Bot
 Wants=network-online.target
 After=network-online.target
+# Non parte finché l'HDD non è montato: evita di scrivere dati sulla SD nel caso l'HDD non sia ancora disponibile all'avvio.
+RequiresMountsFor=/mnt/wd1tb
 
 [Service]
 Type=simple
@@ -10,7 +12,7 @@ User=TUO_UTENTE
 WorkingDirectory=/home/TUO_UTENTE/todo-telegram
 EnvironmentFile=/home/TUO_UTENTE/todo-telegram/.env
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/home/TUO_UTENTE/todo-telegram/.venv/bin/python /home/TUO_UTENTE/todo-telegram/src/bot.py
+ExecStart=/home/TUO_UTENTE/todo-telegram/venv/bin/python /home/TUO_UTENTE/todo-telegram/src/bot.py
 
 Restart=on-failure
 RestartSec=5
@@ -18,7 +20,8 @@ UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/home/TUO_UTENTE/todo-telegram
+# Deve essere la cartella del database (TODO_DB_PATH), deve esistere prima dell'avvio e deve appartenere a User=.
+ReadWritePaths=/mnt/wd1tb/todo-bot-telegram
 
 [Install]
 WantedBy=multi-user.target

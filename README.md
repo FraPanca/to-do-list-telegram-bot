@@ -24,15 +24,17 @@ Bot Telegram ad uso privato per tenere traccia delle proprie attività: permette
    cp .env.example .env
    ```
 
-3. Compila `.env` con `TELEGRAM_BOT_TOKEN` (ottenuto da [@BotFather](https://t.me/BotFather)) e `TELEGRAM_USER_ID_ADMIN` (il tuo ID numerico Telegram: sarà l'amministratore).
+3. Compila `.env` con `TELEGRAM_BOT_TOKEN` (ottenuto da [@BotFather](https://t.me/BotFather)) e `TELEGRAM_USER_ID_ADMIN` (il tuo ID numerico Telegram: sarà l'amministratore). Facoltativamente imposta `TODO_DB_PATH` con il percorso del database (default: `todo.db` nella root del progetto).
 
 4. Avvia il bot:
    ```
    python src/bot.py
    ```
-   Il database SQLite (`todo.db`, nella root del progetto) e lo schema vengono creati automaticamente al primo avvio; l'amministratore viene inserito tra gli utenti autorizzati.
+   Il database SQLite e lo schema vengono creati automaticamente al primo avvio nel percorso indicato da `TODO_DB_PATH` (default: `todo.db` nella root del progetto); l'amministratore viene inserito tra gli utenti autorizzati. La cartella che contiene il database deve esistere ed essere scrivibile dall'utente che esegue il bot.
 
-Per un deploy come servizio persistente è incluso un file di unit systemd in `ops/`: va adattato (utente e percorsi) e installato con `systemctl` per far partire il bot automaticamente all'avvio e riavviarlo in caso di crash. Il comando di avvio nell'unit deve puntare a `src/bot.py`, usando il Python del virtualenv.
+Per un deploy come servizio persistente è incluso un file di unit systemd in `ops/`: va adattato (utente e percorsi) e installato con `systemctl` per far partire il bot automaticamente all'avvio e riavviarlo in caso di crash. Il comando di avvio nell'unit deve puntare a `src/bot.py`, usando il Python del virtualenv (`venv/bin/python`).
+
+Poiché l'unit usa `ProtectSystem=strict`, per il servizio il filesystem è in sola lettura. `ReadWritePaths` deve quindi puntare alla cartella che contiene il database (non al solo file, perché SQLite crea accanto file di journal), che deve esistere prima dell'avvio e appartenere all'utente del servizio. `RequiresMountsFor` impedisce l'avvio finché il disco non è montato, evitando di scrivere sulla scheda SD.
 
 ### Funzionalità principali
 
@@ -48,7 +50,7 @@ Per un deploy come servizio persistente è incluso un file di unit systemd in `o
 - `/today` usa il fuso orario locale del sistema su cui gira il bot
 - Comandi del bot registrati automaticamente su Telegram (menu nativo) all'avvio
 - Logging centralizzato (livello INFO) e gestione degli errori dedicata, con messaggio di avviso all'utente in caso di errore imprevisto
-- Deploy come servizio systemd con hardening (`ProtectSystem=strict`, `NoNewPrivileges`, `PrivateTmp`, `UMask=0077`) e riavvio automatico in caso di crash
+- Deploy come servizio systemd con hardening (`ProtectSystem=strict`, `NoNewPrivileges`, `PrivateTmp`, `UMask=0077`), riavvio automatico in caso di crash e avvio condizionato al montaggio del disco che ospita il database
 
 ### Struttura del progetto
 
@@ -73,15 +75,16 @@ todolist/
 │   └── utils/
 │       └── helper.py             # Funzioni di supporto (es. parsing di un intero positivo)
 ├── requirements.txt              # Dipendenze Python
-├── .env.example                  # Template delle variabili d'ambiente richieste
+├── .env.example                  # Template delle variabili d'ambiente (token, ID admin, percorso del DB opzionale)
 ├── .env                          # Configurazione locale (non va nel repository)
-├── LICENSE                       # Licenza MIT
-└── todo.db                       # Database SQLite, creato al primo avvio (non va nel repository)
+└── LICENSE                       # Licenza MIT
 ```
+
+Il database SQLite (`todo.db`) non fa parte del repository: viene creato al primo avvio nel percorso indicato da `TODO_DB_PATH`.
 
 ### Note
 
-Il file di unit systemd incluso in `ops/` contiene un utente e dei percorsi segnaposto (`TUO_UTENTE`, `/home/TUO_UTENTE/todo-telegram`) da sostituire con i propri prima dell'uso. Gli import interni usano percorsi relativi a `src/` (es. `from config.constants import TOKEN`), quindi il bot va avviato come script (`python src/bot.py`) e non come pacchetto.
+Il file di unit systemd incluso in `ops/` contiene un utente e dei percorsi segnaposto (`TUO_UTENTE`, `/home/TUO_UTENTE/todo-telegram`, `/mnt/wd1tb/todo-bot-telegram`) da sostituire con i propri prima dell'uso. Se imposti o cambi `TODO_DB_PATH` nel `.env`, aggiorna di conseguenza anche `ReadWritePaths` e `RequiresMountsFor` nell'unit, altrimenti il servizio non riuscirà ad aprire il database (`unable to open database file`). Gli import interni usano percorsi relativi a `src/` (es. `from config.constants import TOKEN`), quindi il bot va avviato come script (`python src/bot.py`) e non come pacchetto.
 
 Rimuovendo un utente con `/deleteuser` le sue task **non** vengono eliminate: restano nel database e ricompaiono se lo stesso ID viene riaggiunto. Gli ID delle task sono un unico contatore per tutto il database, quindi nella lista di un utente possono comparire numeri non consecutivi.
 
@@ -115,15 +118,17 @@ A private-use Telegram bot for tracking personal tasks: it lets you add, list, c
    cp .env.example .env
    ```
 
-3. Fill in `.env` with `TELEGRAM_BOT_TOKEN` (obtained from [@BotFather](https://t.me/BotFather)) and `TELEGRAM_USER_ID_ADMIN` (your numeric Telegram ID: you will be the administrator).
+3. Fill in `.env` with `TELEGRAM_BOT_TOKEN` (obtained from [@BotFather](https://t.me/BotFather)) and `TELEGRAM_USER_ID_ADMIN` (your numeric Telegram ID: you will be the administrator). Optionally set `TODO_DB_PATH` to the database path (default: `todo.db` in the project root).
 
 4. Start the bot:
    ```
    python src/bot.py
    ```
-   The SQLite database (`todo.db`, in the project root) and schema are created automatically on first run; the administrator is added to the authorized users.
+   The SQLite database and schema are created automatically on first run at the path given by `TODO_DB_PATH` (default: `todo.db` in the project root); the administrator is added to the authorized users. The folder that holds the database must exist and be writable by the user running the bot.
 
-For a persistent service deployment, a systemd unit file is included in `ops/`: it needs to be adapted (user and paths) and installed with `systemctl` so the bot starts automatically on boot and restarts on crash. The start command in the unit must point to `src/bot.py`, using the virtualenv's Python.
+For a persistent service deployment, a systemd unit file is included in `ops/`: it needs to be adapted (user and paths) and installed with `systemctl` so the bot starts automatically on boot and restarts on crash. The start command in the unit must point to `src/bot.py`, using the virtualenv's Python (`venv/bin/python`).
+
+Because the unit uses `ProtectSystem=strict`, the filesystem is read-only for the service. `ReadWritePaths` must therefore point to the folder that holds the database (not just the file, since SQLite creates journal files next to it), which must exist before startup and be owned by the service user. `RequiresMountsFor` prevents the service from starting until the disk is mounted, which avoids writing to the SD card.
 
 ### Key features
 
@@ -139,7 +144,7 @@ For a persistent service deployment, a systemd unit file is included in `ops/`: 
 - `/today` uses the local time zone of the system running the bot
 - Bot commands automatically registered with Telegram (native menu) on startup
 - Centralized logging (INFO level) and dedicated error handling, with a notice sent to the user on unexpected errors
-- Deployed as a systemd service with hardening (`ProtectSystem=strict`, `NoNewPrivileges`, `PrivateTmp`, `UMask=0077`) and automatic restart on crash
+- Deployed as a systemd service with hardening (`ProtectSystem=strict`, `NoNewPrivileges`, `PrivateTmp`, `UMask=0077`), automatic restart on crash, and startup conditioned on the disk that holds the database being mounted
 
 ### Project structure
 
@@ -164,15 +169,16 @@ todolist/
 │   └── utils/
 │       └── helper.py             # Helper functions (e.g. parsing a positive integer)
 ├── requirements.txt              # Python dependencies
-├── .env.example                  # Template for the required environment variables
+├── .env.example                  # Template for the environment variables (token, admin ID, optional DB path)
 ├── .env                          # Local configuration (not committed)
-├── LICENSE                       # MIT license
-└── todo.db                       # SQLite database, created on first run (not committed)
+└── LICENSE                       # MIT license
 ```
+
+The SQLite database (`todo.db`) is not part of the repository: it is created on first run at the path given by `TODO_DB_PATH`.
 
 ### Notes
 
-The systemd unit file included in `ops/` contains a placeholder user and paths (`TUO_UTENTE`, `/home/TUO_UTENTE/todo-telegram`) that need to be replaced with real ones before use. Internal imports are relative to `src/` (e.g. `from config.constants import TOKEN`), so the bot must be started as a script (`python src/bot.py`) rather than as a package.
+The systemd unit file included in `ops/` contains a placeholder user and paths (`TUO_UTENTE`, `/home/TUO_UTENTE/todo-telegram`, `/mnt/wd1tb/todo-bot-telegram`) that need to be replaced with real ones before use. If you set or change `TODO_DB_PATH` in `.env`, update `ReadWritePaths` and `RequiresMountsFor` in the unit accordingly, otherwise the service will fail to open the database (`unable to open database file`). Internal imports are relative to `src/` (e.g. `from config.constants import TOKEN`), so the bot must be started as a script (`python src/bot.py`) rather than as a package.
 
 Removing a user with `/deleteuser` does **not** delete their tasks: they stay in the database and reappear if the same ID is added again. Task IDs come from a single counter shared by the whole database, so the IDs in a user's list may not be consecutive.
 
